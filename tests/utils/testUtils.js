@@ -85,6 +85,7 @@ async function waitForScanStatus(status, attachmentID) {
  */
 async function waitForDeletion(attachmentID) {
   const AttachmentsSrv = await cds.connect.to("attachments")
+  let entry
   return Promise.race([
     new Promise((resolve) => {
       let resolved = false
@@ -97,6 +98,7 @@ async function waitForDeletion(attachmentID) {
         }
       }
       AttachmentsSrv.on("DeleteAttachment", handler)
+      entry = AttachmentsSrv._handlers.on.at(-1)
     }),
     // original timeout was 30000, reduce once tests work reliably again
     delay(120000).then(async () => {
@@ -107,7 +109,12 @@ async function waitForDeletion(attachmentID) {
         `Timeout waiting for deletion of attachment ID: ${attachmentID}. ${messagesAmount} messages in outbox.`,
       )
     }),
-  ])
+  ]).finally(() => {
+    AttachmentsSrv._handlers.on.splice(
+      AttachmentsSrv._handlers.on.indexOf(entry),
+      1,
+    )
+  })
 }
 
 /**
@@ -117,7 +124,7 @@ async function waitForDeletion(attachmentID) {
  */
 async function waitForMalwareDeletion(attachmentID) {
   const AttachmentsSrv = await cds.connect.to("attachments")
-
+  let entry
   return Promise.race([
     new Promise((resolve) => {
       let resolved = false
@@ -132,6 +139,7 @@ async function waitForMalwareDeletion(attachmentID) {
         }
       }
       AttachmentsSrv.on("DeleteInfectedAttachment", handler)
+      entry = AttachmentsSrv._handlers.on.at(-1)
     }),
     // original timeout was 30000, reduce once tests work reliably again
     delay(120000).then(async () => {
@@ -142,7 +150,12 @@ async function waitForMalwareDeletion(attachmentID) {
         `Timeout waiting for malware deletion of attachment ID: ${attachmentID}. ${messagesAmount} messages in outbox.`,
       )
     }),
-  ])
+  ]).finally(() => {
+    AttachmentsSrv._handlers.on.splice(
+      AttachmentsSrv._handlers.on.indexOf(entry),
+      1,
+    )
+  })
 }
 
 /**
