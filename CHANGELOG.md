@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 - Fixed test suite broken by `https-proxy-agent` and `http-proxy-agent` switching to ESM-only in v7+. Jest's CJS runtime cannot `require()` ESM modules, and both packages are pulled in transitively by `@azure/storage-blob` → `@typespec/ts-http-runtime`. Both packages are now stubbed globally via `moduleNameMapper` in `jest.config.js` so Jest never attempts to load their ESM entry points.
 - Increased `waitForDeletion` and `waitForMalwareDeletion` test helper timeouts from 30 s to 120 s to prevent flaky test failures when the malware scan service is slow under load.
 - Fixed `optionalDeps` test failing when `@azure/storage-blob` pulls in `@typespec/ts-http-runtime`, which depends on `https-proxy-agent` and `http-proxy-agent` v7+ (both ESM-only, no CJS build). Jest's CJS `require()` could not load them. The test now mocks both proxy-agent packages so the module load does not reach their ESM entry points.
+- Fixed test suite failing on Node 22 when `@azure/storage-blob` pulls in `@typespec/ts-http-runtime`, which depends on `https-proxy-agent` and `http-proxy-agent` v7+ (both ESM-only, no CJS build). Jest's CJS `require()` could not load them. Both packages are now stubbed globally via `moduleNameMapper` in `jest.config.js` so the `require()` call never reaches their ESM entry points.
 
 ## Version 4.0.0 - 2026-08-03
 
