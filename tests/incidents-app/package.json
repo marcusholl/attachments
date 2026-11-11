@@ -26,6 +26,17 @@
         "chunkSize": 50,
         "maxAttempts": 2
       },
+      "[hybrid]": {
+        "db": {
+          "kind": "sqlite",
+          "credentials": {
+            "url": "db.sqlite"
+          }
+        },
+        "audit-log": {
+          "kind": "audit-log-to-console"
+        }
+      },
       "auth": {
         "[development]": {
           "users": {
