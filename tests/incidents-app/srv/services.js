@@ -1,5 +1,73 @@
 const cds = require("@sap/cds")
 const LOG = cds.log("incidents-app")
+const OUTBOX_LOG = cds.log("outbox-poll")
+
+cds.once("served", () => {
+  process.stderr.write(`[ENV] profiles=${JSON.stringify(cds.env.profiles)}\n`)
+  process.stderr.write(`[ENV] bypass_draft=${cds.env.fiori?.bypass_draft}\n`)
+  process.stderr.write(
+    `[ENV] db=${JSON.stringify(cds.env.requires?.db?.kind)}\n`,
+  )
+})
+
+const seenIDs = new Set()
+
+const ts = () => new Date().toISOString()
+
+const logOutbox = (label, messages) => {
+  messages.forEach((m) => seenIDs.add(m.ID))
+  const body = `*** ${label} *** count=${messages.length} cumulative=${seenIDs.size}\n${JSON.stringify(
+    messages.map((m) => ({
+      ID: m.ID,
+      target: m.target,
+      status: m.status,
+      attempts: m.attempts,
+      lastError: m.lastError,
+      timestamp: m.timestamp,
+      event: (() => {
+        try {
+          return JSON.parse(m.msg)?.event
+        } catch {
+          return m.msg
+        }
+      })(),
+    })),
+    null,
+    2,
+  )}`
+  const now = ts()
+  process.stderr.write(
+    body
+      .split("\n")
+      .map((l) => `${now} ${l}`)
+      .join("\n") + "\n",
+  )
+}
+
+cds.once("served", () => {
+  const _originalFlush = cds.flush.bind(cds)
+  cds.flush = async function loggedFlush(target, opts) {
+    let messages = []
+    try {
+      messages = await cds.tx(() => SELECT.from("cds.outbox.Messages"))
+    } catch {
+      /* table not yet deployed */
+    }
+    logOutbox(`OUTBOX POLL (target=${target ?? "*"})`, messages)
+    return _originalFlush(target, opts)
+  }
+
+  const timer = setInterval(async () => {
+    let messages = []
+    try {
+      messages = await cds.tx(() => SELECT.from("cds.outbox.Messages"))
+    } catch {
+      /* table not yet deployed */
+    }
+    logOutbox(`OUTBOX STATUS (periodic)`, messages)
+  }, 5000).unref()
+  cds.on("shutdown", () => clearInterval(timer))
+})
 
 class ProcessorService extends cds.ApplicationService {
   /** Registering custom event handlers */

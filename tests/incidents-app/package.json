@@ -16,7 +16,8 @@
     },
     "log": {
       "levels": {
-        "cds": "info"
+        "cds": "info",
+        "outbox-poll": "info"
       }
     },
     "requires": {
